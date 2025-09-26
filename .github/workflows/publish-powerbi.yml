@@ -3,7 +3,7 @@ name: Publish Power BI PBIP
 on:
   push:
     branches:
-      - main
+      - main   # Run workflow when changes are pushed to main
 
 jobs:
   deploy:
@@ -16,32 +16,18 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '6.0.x'
+          dotnet-version: '7.0.x'
 
-      - name: Install PbiTools
-        run: dotnet tool install --global PbiTools
+      - name: Install PBIP Tool
+        run: dotnet tool install --global pbip
 
       - name: Add dotnet tools to PATH
-        run: echo "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-        shell: pwsh
-
-      - name: Check dotnet and pbitools installation
-        run: |
-          dotnet --info
-          dotnet tool list --global
-          where pbitools
-        shell: pwsh
-
-      - name: Debug directory structure
-        run: |
-          Get-ChildItem -Recurse
-        shell: pwsh
+        run: echo "${HOME}/.dotnet/tools" >> $GITHUB_PATH
 
       - name: Publish to Power BI
         run: |
-          pbitools push ./Coffee.pbip `
+          pbip push Coffee.pbip `
             --workspace ${{ secrets.WORKSPACE_ID }} `
             --tenant ${{ secrets.TENANT_ID }} `
             --client-id ${{ secrets.CLIENT_ID }} `
             --client-secret ${{ secrets.CLIENT_SECRET }}
-        shell: pwsh
