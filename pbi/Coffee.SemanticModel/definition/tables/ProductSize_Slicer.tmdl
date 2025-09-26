@@ -1,0 +1,24 @@
+table ProductSize_Slicer
+	lineageTag: 93d678c2-cdbe-418d-9b27-a34459b5d00f
+
+	column Product
+		lineageTag: 9dee2faf-f37b-47d2-a757-12d44c32b7ae
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Product]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition ProductSize_Slicer = calculated
+		mode: import
+		source = ```
+				
+				SELECTCOLUMNS (
+				    'Coffee Detail',
+				    "Product", 'Coffee Detail'[Product]
+				    
+				)
+				```
+
+	annotation PBI_Id = 623b7d2ae3d34c1aa885e20ddde218c6
+

@@ -1,0 +1,22 @@
+table Size_Slicer
+	lineageTag: 8a3f0676-0146-4e49-9f46-7f074d8af4b0
+
+	column Size
+		lineageTag: 57cbc30e-5a2b-4f8b-b2f7-6042f88b9968
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Size]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Size_Slicer = calculated
+		mode: import
+		source =
+				
+				SELECTCOLUMNS (
+				    'Cup Size',
+				    "Size", 'Cup Size'[Size_]
+				)
+
+	annotation PBI_Id = 3605def18add4dc288e07f97123bbe8e
+

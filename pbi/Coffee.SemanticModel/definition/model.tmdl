@@ -1,0 +1,28 @@
+model Model
+	culture: en-IN
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-US
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 1
+
+annotation PBI_QueryOrder = ["Coffee Detail","Cup Detail","Measure","UK_Caffeine_Limits","Logo","Cup Size","Suggested Boundaries (for Adults)"]
+
+ref table 'Coffee Detail'
+ref table 'Cup Detail'
+ref table 'Weight (in lbs)'
+ref table 'Age (in Years)'
+ref table Measure
+ref table UK_Caffeine_Limits
+ref table TimeTable
+ref table Logo
+ref table 'Cup Size'
+ref table 'Sugar Selector'
+ref table 'Suggested Boundaries (for Adults)'
+ref table ProductSize_Slicer
+ref table Size_Slicer
+
+ref cultureInfo en-IN
+

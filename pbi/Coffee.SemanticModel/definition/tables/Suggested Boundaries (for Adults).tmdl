@@ -1,0 +1,40 @@
+table 'Suggested Boundaries (for Adults)'
+	lineageTag: 2a614915-1947-4259-a9c8-dae11a0c1fc5
+
+	column 'Range (mg caffeine per drink)'
+		dataType: string
+		lineageTag: c9676a8a-6e5b-4bd2-87a9-47726ce2d47b
+		summarizeBy: none
+		sourceColumn: Range (mg caffeine per drink)
+
+		annotation SummarizationSetBy = Automatic
+
+	column Category
+		dataType: string
+		lineageTag: a2706b90-b641-4bd2-8b72-09034bb3d444
+		summarizeBy: none
+		sourceColumn: Category
+
+		annotation SummarizationSetBy = Automatic
+
+	column Reasoning
+		dataType: string
+		lineageTag: 80e9cada-1dac-4c18-9ff6-a60fbcb00906
+		summarizeBy: none
+		sourceColumn: Reasoning
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Suggested Boundaries (for Adults)' = m
+		mode: import
+		source =
+				let
+				    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("Zc49CsIwGMbxqzxk7hA/LqCgmziIU+2Qtq9NMKaQtGo3F2cHtyLo6BE8jxfQI5iq6OD28sD/xxuGjOO2PaDNOZYZC9jtuMNEzMmfI1EkkhwGw0kPzm9wymSakOaOWBSErM1br7rzrevz/bpHP7cpWa1Mw/TifEV/PeKywFoVUhmkQukK3TfSuLOS8w792MepvmBq3PuvsfES2ZXHILQlkVZIdGMW+cdaik0AqTJJFla5BYuiJw==", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [#"Range (mg caffeine per drink)" = _t, Category = _t, Reasoning = _t]),
+				    #"Changed Type" = Table.TransformColumnTypes(Source,{{"Range (mg caffeine per drink)", type text}, {"Category", type text}, {"Reasoning", type text}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

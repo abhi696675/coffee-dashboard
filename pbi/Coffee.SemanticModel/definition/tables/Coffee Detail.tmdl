@@ -1,0 +1,185 @@
+table 'Coffee Detail'
+	lineageTag: a61be862-2e94-4724-9ac7-e853b614053c
+
+	column Vendor
+		dataType: string
+		lineageTag: 2f43ba8b-cbe1-4e3d-b438-4f39df0e0f13
+		summarizeBy: none
+		sourceColumn: Vendor
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Season 2025'
+		dataType: string
+		lineageTag: 813b0968-dd06-4ca9-b93c-d059fbb7b2a1
+		summarizeBy: none
+		sourceColumn: Season 2025
+
+		annotation SummarizationSetBy = Automatic
+
+	column Category
+		dataType: string
+		lineageTag: c321690c-a0e5-4177-a95d-4b41566d5a02
+		summarizeBy: none
+		sourceColumn: Category
+
+		annotation SummarizationSetBy = Automatic
+
+	column Product
+		dataType: string
+		lineageTag: fdcf3d60-f1a9-4236-8383-97120ba95b60
+		summarizeBy: none
+		sourceColumn: Product
+
+		annotation SummarizationSetBy = Automatic
+
+	column Size
+		dataType: string
+		lineageTag: 5746a99b-937a-46e7-872f-6b6f1509d542
+		summarizeBy: none
+		sourceColumn: Size
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Energy (kJ)'
+		dataType: int64
+		formatString: 0
+		lineageTag: f3fb57c1-3efa-4722-94b4-6c11b9285651
+		summarizeBy: sum
+		sourceColumn: Energy (kJ)
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Energy (kcal)'
+		dataType: int64
+		formatString: 0
+		lineageTag: 40d830be-834b-4ee9-960e-a6dd18fa77fe
+		summarizeBy: sum
+		sourceColumn: Energy (kcal)
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Fat (g)'
+		dataType: double
+		lineageTag: 3dcc223f-289a-40e3-b155-c88d7a431168
+		summarizeBy: sum
+		sourceColumn: Fat (g)
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Saturated (g)'
+		dataType: double
+		lineageTag: ad6a8169-e25a-49eb-b87d-21f0e7c389cc
+		summarizeBy: sum
+		sourceColumn: Saturated (g)
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Carbohydrates (g)'
+		dataType: double
+		lineageTag: 2a39bfe8-db27-4d61-ac22-d1995cdbe4fd
+		summarizeBy: sum
+		sourceColumn: Carbohydrates (g)
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Sugars (g)'
+		dataType: double
+		lineageTag: e5f3536c-709f-4e27-904b-6bf7ae8dc679
+		summarizeBy: sum
+		sourceColumn: Sugars (g)
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Fibre (g)'
+		dataType: double
+		lineageTag: f7fa84f3-426e-46b2-a81e-f4af1001ac5b
+		summarizeBy: sum
+		sourceColumn: Fibre (g)
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Protein (g)'
+		dataType: double
+		lineageTag: abed9ec1-9896-4b9d-af34-c2f0cae17cef
+		summarizeBy: sum
+		sourceColumn: Protein (g)
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Salt (g)'
+		dataType: string
+		lineageTag: d781663f-0426-4a65-8182-d2574caf158a
+		summarizeBy: none
+		sourceColumn: Salt (g)
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Caffeine (mg)'
+		dataType: int64
+		formatString: 0
+		lineageTag: 21eed02b-e4be-4c1e-b2de-ce1cb70f524c
+		summarizeBy: sum
+		sourceColumn: Caffeine (mg)
+
+		annotation SummarizationSetBy = Automatic
+
+	column Allergens
+		dataType: string
+		lineageTag: a238278c-94af-4f36-bd83-c201a33f23b7
+		summarizeBy: none
+		sourceColumn: Allergens
+
+		annotation SummarizationSetBy = Automatic
+
+	column Vendor–Size = 'Coffee Detail'[Vendor] & " - " & 'Coffee Detail'[Size]
+		lineageTag: 5472361b-e861-49de-8d19-d9170b56f4e1
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Risk Category' =
+			
+			VAR Caf = 'Coffee Detail'[Caffeine (mg)]
+			VAR Sug = 'Coffee Detail'[Sugars (g)]
+			RETURN
+			    SWITCH(
+			        TRUE(),
+			        Caf <= 200 && Sug <= 25, "✅ Safe",
+			        Caf <= 200 && Sug > 25,  "🍭 Sugar Risk",
+			        Caf > 200 && Sug <= 25,  "☕ Caffeine Risk",
+			        Caf > 200 && Sug > 25,   "🚨 Double Risk",
+			        "Other"
+			    )
+		lineageTag: ff20eacc-174e-4586-bbe0-69abf4453548
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Coffee Detail' = m
+		mode: import
+		source =
+				let
+				    Source = Excel.Workbook(File.Contents("C:\Users\Jassi\Downloads\Data\All Data for 5 vendors1.xlsx"), null, true),
+				    #"Coffee Detail_Sheet" = Source{[Item="Coffee Detail",Kind="Sheet"]}[Data],
+				    #"Promoted Headers" = Table.PromoteHeaders(#"Coffee Detail_Sheet", [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"Vendor", type text}, {"Season 2025", type text},  {"Category", type text}, {"Product", type text}, {"Size", type text}, {"Energy (kJ)", Int64.Type}, {"Energy (kcal)", Int64.Type}, {"Fat (g)", type number}, {"Saturated (g)", type number}, {"Carbohydrates (g)", type number}, {"Sugars (g)", type number}, {"Fibre (g)", type number}, {"Protein (g)", type number}, {"Salt (g)", type any}, {"Caffeine (mg)", Int64.Type}, {"Allergens", type text}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

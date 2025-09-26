@@ -1,0 +1,885 @@
+table Measure
+	lineageTag: 0f3b19bd-08ef-43c2-b25c-2e2fcc2e2947
+
+	measure 'Caffeine Display' = ```
+			
+			VAR VendorSel   = ISFILTERED('Coffee Detail'[Vendor])
+			VAR ProductSel  = ISFILTERED('Coffee Detail'[Product])
+			VAR CategorySel  = ISFILTERED('Coffee Detail'[Category])
+			VAR SizeSel     = ISFILTERED('Cup Size'[Size_])
+			 
+			-- Default Size List
+			VAR DefaultSizes =
+			    {"Standard","Small","Mini","Regular","Single","Short"}
+			 
+			VAR BaseValue =
+			    IF(
+			        NOT SizeSel,
+			        -- Agar Size slicer select nahi hai → default sizes apply
+			        CALCULATE(
+			            MIN('Coffee Detail'[Caffeine (mg)]),
+			            KEEPFILTERS( FILTER( ALL('Coffee Detail'[Size]), 'Coffee Detail'[Size] IN DefaultSizes ) )
+			        ),
+			        -- Agar Size slicer selected hai → respect user selection
+			        CALCULATE(
+			            MIN('Coffee Detail'[Caffeine (mg)])
+			        )
+			    )
+			RETURN
+			    IF (
+			        NOT VendorSel,
+			        "Please select a Vendor to continue",
+			        IF (
+			            VendorSel && NOT CategorySel,
+			             "Please select a Category for the chosen Vendor",
+			            IF (
+			                CategorySel && NOT ProductSel,
+			                "Please select a Product for the chosen Category",
+			                IF (
+			                     ProductSel && NOT SizeSel,
+			                     "Please select a Size for the chosen Product",
+			                    BaseValue
+			                )
+			            )
+			        )
+			    )
+			   
+			```
+		formatString: 0.## " mg"
+		lineageTag: 568c2923-3f06-4013-bb0b-a07d1e651cb8
+
+		annotation PBI_FormatHint = {"isCustom":true}
+
+	measure 'Safe Caffeine Limit (mg)' = ```
+			
+			VAR Age = SELECTEDVALUE ( 'Age (in Years)'[Age (in Years)] )
+			VAR WeightLbs = SELECTEDVALUE ( 'Weight (in lbs)'[Weight (lbs)], 0 )
+			VAR WeightKg = DIVIDE ( WeightLbs, 2.205 )
+			 
+			VAR KgRule =
+			    SWITCH (
+			        TRUE(),
+			        Age <= 11, 0,
+			        Age >= 12 && Age <= 17, WeightKg * 2.5,
+			        Age >= 18 && Age <= 64, WeightKg * 3,
+			        Age >= 65, WeightKg * 2
+			    )
+			 
+			VAR Cap =
+			    SWITCH (
+			        TRUE(),
+			        Age <= 11, 0,
+			        Age >= 12 && Age <= 17, 100,
+			        Age >= 18 && Age <= 64, 400,
+			        Age >= 65, 300
+			    )
+			RETURN
+			    MIN ( KgRule, Cap )
+			```
+		lineageTag: 4e63f771-3e63-45aa-9b45-d596f98801ec
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Caffeine Status' =
+			
+			VAR VendorSel   = ISFILTERED('Coffee Detail'[Vendor])
+			VAR ProductSel  = ISFILTERED('Coffee Detail'[Product])
+			VAR CategorySel = ISFILTERED('Coffee Detail'[Category])
+			VAR SizeSel = ISFILTERED('Coffee Detail'[Size])
+			RETURN
+			IF (
+			    NOT (VendorSel && ProductSel && CategorySel  && SizeSel),
+			    " ",
+			    IF (
+			        [Caffeine Display] <= [Safe Caffeine Limit (mg)],
+			        "✔︎ Within Safe Limit",
+			        "✖︎ Exceeded"
+			    )
+			)
+		lineageTag: cdcb3619-73a8-4359-8e41-82d0306f01fa
+
+	measure 'Caffeine Restriction Time' = ```
+			
+			VAR Age = SELECTEDVALUE('Age (in Years)'[Age (in Years)])
+			VAR Bedtime = SELECTEDVALUE(TimeTable[Time_24_hhmmss], TIME(22,30,0))  
+			-- default to 10:30 PM if not selected
+			
+			-- Cutoffs
+			VAR Cutoff6 = Bedtime - TIME(6,0,0)
+			VAR Cutoff8 = Bedtime - TIME(8,0,0)
+			
+			-- Adjust for wrap (if goes negative, add +1 day)
+			VAR Cutoff6Adj = IF(Cutoff6 < 0, Cutoff6 + 1, Cutoff6)
+			VAR Cutoff8Adj = IF(Cutoff8 < 0, Cutoff8 + 1, Cutoff8)
+			
+			-- Format times
+			VAR Cutoff6Text = FORMAT(Cutoff6Adj, "hh:mm AM/PM")
+			VAR Cutoff8Text = FORMAT(Cutoff8Adj, "hh:mm AM/PM")
+			
+			RETURN
+			    SWITCH(
+			        TRUE(),
+			        Age <= 11, "🚫 Children – NHS UK advises no caffeine at all",
+			        
+			        Age <= 17, "⚠️ Teens – UK health guidance: stop caffeine between " 
+			            & Cutoff8Text & " and " & Cutoff6Text 
+			            & " (to avoid impact on growth & sleep)",
+			        
+			        Age <= 64, "⚠️ Adults – NHS UK suggests cutting off caffeine between " 
+			            & Cutoff8Text & " and " & Cutoff6Text 
+			            & " (6–8 hrs before bed for better sleep quality)",
+			        
+			        Age >= 65, "⚠️ Seniors – UK advice: avoid caffeine between " 
+			            & Cutoff8Text & " and " & Cutoff6Text 
+			            & " (sensitivity is higher in older age)"
+			    )
+			```
+		lineageTag: de8386e2-a6dd-4f9d-bd59-cb8fcc1a93f7
+
+	measure 'Safe Sugar Limit (g/day)' = ```
+			
+			VAR Age = SELECTEDVALUE('Age (in Years)'[Age (in Years)])
+			VAR WeightLbs = SELECTEDVALUE('Weight (in lbs)'[Weight (lbs)], 0)
+			VAR WeightKg = DIVIDE(WeightLbs, 2.205, 0)
+			 
+			-- Weight-based allowance (0.25 g/kg)
+			VAR ByWeight = WeightKg * 0.25
+			 
+			-- NHS caps
+			VAR Cap =
+			    SWITCH(
+			        TRUE(),
+			        Age <= 3, 0,        -- no official limit, treat as 0
+			        Age <= 6, 19,
+			        Age <= 10, 24,
+			        Age >= 11, 30
+			    )
+			 
+			RETURN
+			    MIN(ByWeight, Cap)
+			```
+		formatString: 0.## " g"
+		lineageTag: 698f8e13-ab1e-45f9-bd72-4c095f3c2469
+
+		annotation PBI_FormatHint = {"isCustom":true}
+
+	measure 'Used Sugar Ratio' =
+			
+			DIVIDE( [Sugar Display (Numeric)], [Safe Sugar Limit (g/day)] )
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: 41e1dc21-605f-4af1-b1f8-67bba025bfcf
+
+	measure 'Sugar Display_' = ```
+			
+			VAR VendorSel   = ISFILTERED('Coffee Detail'[Vendor])
+			VAR ProductSel  = ISFILTERED('Coffee Detail'[Product])
+			VAR CategorySel  = ISFILTERED('Coffee Detail'[Category])
+			VAR SizeSel     = ISFILTERED('Cup Size'[Size_])
+			
+			-- Default Size List
+			VAR DefaultSizes =
+			    {"Standard","Small","Mini","Regular","Single","Short"}
+			
+			VAR BaseValue =
+			    IF(
+			        NOT SizeSel,
+			        -- Agar Size slicer select nahi hai → default sizes apply
+			        CALCULATE(
+			            MIN('Coffee Detail'[Sugars (g)]),
+			            KEEPFILTERS( FILTER( ALL('Coffee Detail'[Size]), 'Coffee Detail'[Size] IN DefaultSizes ) )
+			        ),
+			        -- Agar Size slicer selected hai → respect user selection
+			        CALCULATE(
+			            MIN('Coffee Detail'[Sugars (g)])
+			        )
+			    )
+			RETURN
+			    IF (
+			        NOT VendorSel,
+			        "Please select a Vendor to continue",
+			        IF (
+			            VendorSel && NOT CategorySel,
+			             "Please select a Category for the chosen Vendor",
+			            IF (
+			                CategorySel && NOT ProductSel,
+			                "Please select a Product for the chosen Category",
+			                IF (
+			                     ProductSel && NOT SizeSel,
+			                     "Please select a Size for the chosen Product",
+			                    BaseValue
+			                )
+			            )
+			        )
+			    )
+			    
+			```
+		formatString: 0.## " g"
+		lineageTag: f6248ece-775e-4a54-9b5e-20c875d47867
+
+		annotation PBI_FormatHint = {"isCustom":true}
+
+	measure 'Vendor Text Color' = ```
+			
+			VAR SelectedVendor = SELECTEDVALUE('Coffee Detail'[Vendor])
+			RETURN
+			    SWITCH(
+			        TRUE(),
+			        ISBLANK(SelectedVendor), "#000000",     
+			        SelectedVendor = "Costa", "#8B1E2C",    -- Red
+			        SelectedVendor = "Starbucks", "#097143",-- Green
+			        SelectedVendor = "Pret a Manger", "#943544",     -- Purple
+			        SelectedVendor = "Caffe Nero", "#6C8DD0", -- Blue
+			        SelectedVendor = "Greggs", "#006CAB",   -- Orange
+			        "#000000"                               -- Default Black
+			    )
+			```
+		lineageTag: efc3c4c0-f520-472b-989a-568d4c252a32
+
+	measure 'Vendor Display' =
+			
+			VAR SelectedVendor = SELECTEDVALUE('Coffee Detail'[Vendor])
+			RETURN
+			    IF(
+			        ISBLANK(SelectedVendor),
+			        "Choose a vendor (type to search)",
+			        "☕ Selected Vendor: " & SelectedVendor
+			    )
+		lineageTag: fdda896b-27e9-4a68-94fb-2a35ce183f5b
+
+	measure 'Text Starbuck' = "Starbucks"
+		lineageTag: 9c270ad3-aee2-4ebb-92d7-9fa634079b26
+
+	measure 'Text Costa' = "costa"
+		lineageTag: a284a4f0-e770-4aeb-91d1-e8e5bc6ac96d
+
+	measure 'Vendor(Costa) Text Color' = ```
+			
+			VAR SelectedVendor = SELECTEDVALUE('Coffee Detail'[Vendor])
+			RETURN
+			    SWITCH(
+			        TRUE(),
+			        ISBLANK(SelectedVendor), "#000000",     
+			        SelectedVendor = "Costa", "#8B1E2C" ,
+			           "#000000"                               -- Default Black
+			       
+			    )
+			```
+		lineageTag: b3443680-1cfd-440f-8982-c0ef17fa732c
+
+	measure 'Vendor(Starbucks) Text Color' = ```
+			
+			VAR SelectedVendor = SELECTEDVALUE('Coffee Detail'[Vendor])
+			RETURN
+			    SWITCH(
+			        TRUE(),
+			        ISBLANK(SelectedVendor), "#000000",     
+			        SelectedVendor = "Starbucks", "#097143",-- Green
+			        "#000000"                               -- Default Black
+			    )
+			```
+		lineageTag: b6b49bfd-5177-4bf0-b39e-302d93baf31a
+
+	measure 'Text Caffè Nero' = "Caffe Nero"
+		lineageTag: bdde7404-1c6d-4efc-b717-9d60b4aafd83
+
+	measure 'Text Greggs' = "Greggs"
+		lineageTag: b4f6ec8b-2c7b-45a8-b479-171d73401656
+
+	measure 'Text Pret a Manger' = "Pret a Manger"
+		lineageTag: 7cc34743-72b4-4529-9e6a-e3a7f23b1178
+
+	measure 'Vendor(Pret) Text Color' = ```
+			
+			VAR SelectedVendor = SELECTEDVALUE('Coffee Detail'[Vendor])
+			RETURN
+			    SWITCH(
+			        TRUE(),
+			        ISBLANK(SelectedVendor), "#000000",     
+			        SelectedVendor = "Pret a Manger", "#943544",     -- Purple
+			        "#000000"                               -- Default Black
+			    )
+			```
+		lineageTag: 02bb7a0e-b59b-4bc6-8ccf-f275a48d9f70
+
+	measure 'Vendor(Caffè Nero) Text Color' = ```
+			
+			VAR SelectedVendor = SELECTEDVALUE('Coffee Detail'[Vendor])
+			RETURN
+			    SWITCH(
+			        TRUE(),
+			        ISBLANK(SelectedVendor), "#000000",     
+			        SelectedVendor = "Caffe Nero", "#6C8DD0", -- Blue
+			        "#000000"                               -- Default Black
+			    )
+			```
+		lineageTag: c7c2aec7-04df-47fa-a6df-fce97493927d
+
+	measure 'Vendor(Greggs) Text Color' = ```
+			
+			VAR SelectedVendor = SELECTEDVALUE('Coffee Detail'[Vendor])
+			RETURN
+			    SWITCH(
+			        TRUE(),
+			        ISBLANK(SelectedVendor), "#000000",     
+			        SelectedVendor = "Greggs", "#006CAB",   -- Orange
+			        "#000000"                               -- Default Black
+			    )
+			```
+		lineageTag: c04bd987-803f-4f85-89ce-5a9fce29a4e8
+
+	measure IsTop5 =
+			
+			IF ( [Product Caffeine Ran Desc] <= 5, 1, 0 )
+		formatString: 0
+		lineageTag: d6198c83-9bbd-4cc8-85de-7448bce7f6c4
+
+	measure 'Product Caffeine Ran Desc' =
+			
+			RANKX (
+			    ALLSELECTED ( 'Coffee Detail' ),
+			    CALCULATE ( MAX ( 'Coffee Detail'[Caffeine (mg)] ) ),
+			    ,
+			    DESC,
+			    DENSE
+			)
+		formatString: 0
+		lineageTag: 95da308a-1441-4689-a081-e5041c7b264e
+
+	measure 'Product Suggar Ran Desc' =
+			
+			RANKX (
+			    ALLSELECTED ( 'Coffee Detail' ),
+			    CALCULATE ( MAX ( 'Coffee Detail'[Sugars (g)] ) ),
+			    ,
+			    DESC,
+			    DENSE
+			)
+		formatString: 0
+		lineageTag: 0da24a60-0992-4024-a9f0-3509a1ea07a2
+
+	measure 'IsTop5 Suggar' =
+			
+			IF ( [Product Suggar Ran Desc] <= 5, 1, 0 )
+		formatString: 0
+		lineageTag: 7f9f7759-0a36-41ee-9ca8-88f862333faa
+
+	measure '% Caffeine Used vs Safe Limit' = ```
+			
+			VAR SafeLimit     = [Safe Caffeine Limit (mg)]
+			VAR CaffeineValue = [Caffeine Display]
+			VAR IsNumericValue = 
+			    IF ( NOT ISBLANK (CaffeineValue) && ISNUMBER (CaffeineValue), CaffeineValue )
+			VAR UsedPct = DIVIDE ( IsNumericValue, SafeLimit, 0 )
+			VAR OverPct = UsedPct 
+			RETURN
+			    IF (
+			        ISBLANK (SafeLimit) || ISBLANK (IsNumericValue),
+			        "  "  ,
+			        IF (
+			            UsedPct <= 1,
+			            
+			                ROUND ( UsedPct * 100, 0 ) & "% used",
+			          
+			                 ROUND ( OverPct * 100, 0 ) & "% over"
+			        )
+			    )
+			```
+		lineageTag: 0bfbc58d-6c53-4d31-a7ae-cfb55ce2839d
+
+	measure 'Caffeine Guidance' =
+			
+			VAR Age = SELECTEDVALUE ('Age (in Years)'[Age (in Years)])
+			RETURN
+			    SWITCH(
+			        TRUE(),
+			        Age <= 11, "✖ Children (≤11 years): Caffeine is not recommended.",
+			        Age >= 12 && Age <= 17, "▲ Teenagers (12–17 years): Avoid caffeine after 2:30 – 4:30 PM.",
+			        Age >= 18 && Age <= 64, "✓ Adults (18–64 years): Recommended last intake by 5:00 – 6:00 PM.",
+			        Age >= 65, "👴 Older Adults (65+ years): Last intake by 3:00 – 4:00 PM (may need earlier due to sensitivity).",
+			        BLANK()
+			    )
+		lineageTag: adb8e19d-c130-447d-91da-9c23e393779f
+
+	measure 'Selected Age Group' =
+			
+			VAR AgeSel = SELECTEDVALUE ( 'Age (in Years)'[Age (in Years)] )
+			RETURN
+			SWITCH (
+			    TRUE(),
+			    ISBLANK ( AgeSel ), BLANK(),
+			    AgeSel <= 11, "0–11 yrs",
+			    AgeSel <= 17, "12–17 yrs",
+			    AgeSel <= 64, "18–64 yrs",
+			    "65+ yrs"
+			)
+		lineageTag: 60bea25a-f980-4b97-a42d-592df637065a
+
+	measure 'Age Group Bar Color' =
+			
+			VAR ThisGroup = SELECTEDVALUE ( 'UK_Caffeine_Limits'[Age Group] )
+			VAR SelGroup  = [Selected Age Group]
+			RETURN
+			IF (
+			    NOT ISBLANK(SelGroup) && ThisGroup = SelGroup,
+			    "#76410C",        -- highlight color (change if you want)
+			    "#D9B38C"         -- dim color
+			)
+		lineageTag: d8a2e1d1-e2fe-4c9e-8088-b4851884f854
+
+	measure 'Gauge Fill Color' =
+			
+			IF (
+			    [Caffeine Display] >= [Safe Caffeine Limit (mg)],   -- equality goes RED
+			    "#C24034",   -- RED
+			    "#819A50"    -- GREEN
+			)
+		lineageTag: 0f0b92fb-456d-41b3-ad06-b35af07e662e
+
+	measure 'Caffeine Remaining Safe Limit' =
+			
+			VAR VendorSel   = ISFILTERED('Coffee Detail'[Vendor])
+			VAR ProductSel  = ISFILTERED('Coffee Detail'[Product])
+			VAR CategorySel = ISFILTERED('Coffee Detail'[Category])
+			VAR SizeSel = ISFILTERED('Cup Size'[Size_])
+			RETURN
+			IF (
+			    NOT (VendorSel && ProductSel && CategorySel  && SizeSel),
+			    " ",
+			    IF (
+			         [Safe Caffeine Limit (mg)]- [Caffeine Display] <= [Safe Caffeine Limit (mg)] ,
+			        [Safe Caffeine Limit (mg)]- [Caffeine Display],
+			        [Caffeine Display] - [Safe Caffeine Limit (mg)]
+			    )
+			)
+		lineageTag: 6d359831-d5de-47a5-b87f-642b079f6868
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Caffeine Status_' =
+			
+			VAR VendorSel   = ISFILTERED('Coffee Detail'[Vendor])
+			VAR ProductSel  = ISFILTERED('Coffee Detail'[Product])
+			VAR CategorySel = ISFILTERED('Coffee Detail'[Category])
+			VAR SizeSel = ISFILTERED('Cup Size'[Size_])
+			RETURN
+			IF (
+			    NOT (VendorSel && ProductSel && CategorySel  && SizeSel),
+			    " ",
+			    IF (
+			        [Caffeine Display] <= [Safe Caffeine Limit (mg)],
+			        "✅ You are within your safe caffeine limit",
+			        "❌ You exceeded your safe caffeine limit"
+			    )
+			)
+		lineageTag: 55e44eae-5209-47e3-896a-7ab9f85cc63f
+
+	measure 'Caffeine Display (Numeric)' =
+			
+			IF ( ISNUMBER( [Caffeine Display] ), [Caffeine Display], BLANK() )
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: 8bb939c4-8a25-4744-946b-f4b91f782667
+
+	measure 'Gauge Value %' = ```
+			
+			VAR u = [Used Ratio]
+			RETURN
+			IF ( ISBLANK(u), BLANK(),
+			     IF ( u <= 1, u, (u ) ) 
+			)
+			```
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: d2b748b7-fe57-44cb-a8e8-38db434019af
+
+	measure 'Gauge Color' =
+			
+			VAR u = [Caffeine Display (Numeric)]
+			RETURN IF ( ISBLANK(u), "#D1D5DB", IF ( u <= 1, "#819A50",  "#C24034") )
+		lineageTag: eca964ac-728f-4c98-9ed4-934ac7e004dc
+
+	measure 'Selected Vendor' = SELECTEDVALUE ( 'Coffee Detail'[Vendor] )
+		lineageTag: c4a4cbba-ccf3-452c-bb07-0718aa472ae5
+
+	measure 'Selected Vendor Logo URL' =
+			
+			VAR v = [Selected Vendor]
+			RETURN IF ( NOT ISBLANK(v),
+			            LOOKUPVALUE ( Logo[Pic], Logo[Vendors], v ) )
+		lineageTag: c97ff064-71e1-4c70-b833-98d1d4f36711
+		dataCategory: ImageUrl
+
+	measure 'Vendor Text Color_' = ```
+			
+			VAR v = [Selected Vendor]
+			RETURN
+			SWITCH(TRUE(),
+			    ISBLANK(v), "#000000",
+			    v="Costa",        "#8B1E2C",
+			    v="Starbucks",    "#097143",
+			    v="Pret a Manger","#943544",
+			    v="Caffe Nero",   "#DD9F57",
+			    v="Greggs",       "#006CAB",
+			    "#000000"
+			)
+			
+			```
+		lineageTag: e976dbb6-bd84-47e0-b883-bef0e123163d
+
+	measure 'Vendor Display_' =
+			
+			IF ( ISBLANK([Selected Vendor]),
+			     "Choose a vendor (type to search)",
+			     "Selected Vendor: " & [Selected Vendor] )
+		lineageTag: 3e44c0a0-0954-43e8-a37a-f49deaec9465
+
+	measure 'Used Ratio' =
+			
+			DIVIDE( [Caffeine Display (Numeric)], [Safe Caffeine Limit (mg)] )
+		lineageTag: 926cb1b2-b0ec-45d9-ae21-6d8fa6524c81
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Sugar Remaining Safe Limit' = ```
+			
+			VAR VendorSel   = ISFILTERED('Coffee Detail'[Vendor])
+			VAR ProductSel  = ISFILTERED('Coffee Detail'[Product])
+			VAR CategorySel = ISFILTERED('Coffee Detail'[Category])
+			VAR SizeSel = ISFILTERED('Cup Size'[Size_])
+			
+			RETURN
+			IF (
+			    NOT (VendorSel && ProductSel && CategorySel  && SizeSel),
+			    " ",
+			    IF (
+			         [Safe Sugar Limit (g/day)]- [Sugar Display_] <= [Safe Caffeine Limit (mg)] ,
+			        [Safe Sugar Limit (g/day)]- [Sugar Display_],
+			        [Sugar Display_] - [Safe Sugar Limit (g/day)]
+			    )
+			)
+			
+			```
+		formatString: 0.## " g"
+		lineageTag: 52b070f2-f661-42fa-b697-6d2975316d1d
+
+		annotation PBI_FormatHint = {"isCustom":true}
+
+	measure 'Sugar Status' = ```
+			
+			VAR VendorSel   = ISFILTERED('Coffee Detail'[Vendor])
+			VAR ProductSel  = ISFILTERED('Coffee Detail'[Product])
+			RETURN
+			IF (
+			    NOT (VendorSel && ProductSel),
+			    " ",
+			    IF (
+			        [Sugar Display_] <= [Safe Sugar Limit (g/day)],
+			        "✅ You are within your safe Sugar limit",
+			        "❌ You exceeded your safe Sugar limit"
+			    )
+			)
+			
+			```
+		lineageTag: 35bafba5-8a9a-4080-b956-18066e03a76e
+
+	measure 'Gauge Fill Color for sugar' =
+			
+			IF (
+			    [Sugar Display_] >= [Safe Sugar Limit (g/day)],   -- equality goes RED
+			    "#C24034",   -- RED
+			    "#819A50"    -- GREEN
+			)
+		lineageTag: 35845d04-9969-4d69-a98e-c51ce19df2ab
+
+	measure 'Gauge Max Sugar' = [Safe Sugar Limit (g/day)] * 1.2
+		lineageTag: 3515aab5-8c6f-4875-bfd1-ed08194f44fc
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Sugar Display (Numeric)' =
+			
+			IF ( ISNUMBER( [Sugar Display_] ), [Sugar Display_], BLANK() )
+		lineageTag: d9a5711c-32a5-4d3c-afbb-21bd3a684875
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Gauge Sugar Value %' = ```
+			
+			VAR u = [Used Sugar Ratio]
+			RETURN
+			IF ( ISBLANK(u), BLANK(),
+			     IF ( u <= 1, u, (u) ) 
+			)
+			```
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: cd6beea0-3ba4-4818-ae61-ed7babf02a6c
+
+	measure '% Sugar Used vs Safe Limit' = ```
+			
+			VAR SafeLimit     = [Safe Sugar Limit (g/day)]
+			VAR CaffeineValue = [Sugar Display_]
+			VAR IsNumericValue = 
+			    IF ( NOT ISBLANK (CaffeineValue) && ISNUMBER (CaffeineValue), CaffeineValue )
+			VAR UsedPct = DIVIDE ( IsNumericValue, SafeLimit, 0 )
+			VAR OverPct = UsedPct 
+			RETURN
+			    IF (
+			        ISBLANK (SafeLimit) || ISBLANK (IsNumericValue),
+			        "  "  ,
+			        IF (
+			            UsedPct <= 1,
+			            
+			                ROUND ( UsedPct * 100, 0 ) & "% used",
+			          
+			                 ROUND ( OverPct * 100, 0 ) & "% over"
+			        )
+			    )
+			```
+		lineageTag: ef57b964-d994-4bea-a681-834919f09536
+
+	measure Vendor1 = ```
+			
+			VAR SelectedVendor = SELECTEDVALUE('Coffee Detail'[Vendor])
+			RETURN
+			  
+			         SelectedVendor
+			   
+			```
+		lineageTag: 6920ffbe-d281-49d6-9a7e-78b082da4ea2
+
+	measure 'Sugar Font Color' = ```
+			
+			VAR val = [Sugar Display_]
+			RETURN
+			IF (
+			    ISNUMBER ( val ),
+			    "#000000", 
+			    "#FFE1AC"    
+			)
+			```
+		lineageTag: cca1ee1f-1e55-477a-a00c-191f092f33b2
+
+	measure 'Caffeine Font Color' = ```
+			
+			VAR val = [Caffeine Display]
+			RETURN
+			IF (
+			    ISNUMBER ( val ),
+			    "#000000", 
+			    "#FFE1AC"    
+			)
+			```
+		lineageTag: 98028908-9dd4-4550-aa6d-d4ab2786fc36
+
+	measure 'Gauge Value % Font Color' = ```
+			
+			VAR val = [Gauge Value %]
+			RETURN
+			IF (
+			    ISNUMBER ( val ),
+			    "#000000", 
+			    "#FFE1AC"    
+			)
+			```
+		lineageTag: de21f97b-7564-4e53-98fa-65f5d848ce59
+
+	measure 'Gauge Sugar Value % Font Color' = ```
+			
+			VAR val = [Gauge Sugar Value %]
+			RETURN
+			IF (
+			    ISNUMBER ( val ),
+			    "#000000", 
+			    "#FFE1AC"    
+			)
+			```
+		lineageTag: 20abc0ba-99c2-41a6-8678-a6e66d85d2db
+
+	measure RowCaf =
+			
+			CALCULATE (
+			    SELECTEDVALUE ( 'Coffee Detail'[Caffeine (mg)] ),
+			    REMOVEFILTERS ( 'Cup Size'[Size_] )
+			)
+		formatString: 0
+		displayFolder: Caffeine Range
+		lineageTag: b23a6bfb-35e0-44d1-a484-2582990b51c4
+
+	measure 'Selected Caffeine (Constant)' =
+			
+			VAR SelProduct = SELECTEDVALUE ( ProductSize_Slicer[Product] )
+			VAR SelSize    = SELECTEDVALUE ( Size_Slicer[Size])
+			RETURN
+			    CALCULATE (
+			        MAX ( 'Coffee Detail'[Caffeine (mg)] ),
+			        FILTER (
+			            ALLSelected ( 'Coffee Detail' ),
+			            'Coffee Detail'[Product] = SelProduct &&
+			            RELATED('Cup Size'[Size_]) = SelSize
+			        )
+			    )
+		formatString: 0
+		displayFolder: Caffeine Range
+		lineageTag: b8ef7bb2-c095-415b-9fa6-653f44be3f72
+
+	measure 'Show Nearest Range below selected caffeine' =
+			
+			VAR SelCaf = [Selected Caffeine (Constant)]
+			VAR RowCaf = [RowCaf]
+			RETURN
+			    IF (
+			        NOT ISBLANK(SelCaf) &&
+			        RowCaf <= SelCaf,   -- row by row comparison
+			        1,
+			        0
+			    )
+		formatString: 0
+		displayFolder: Caffeine Range
+		lineageTag: b37d99c5-1298-487a-a7d4-217658f86da0
+
+	measure 'Show Range Flag b/W' = ```
+			
+			VAR SelCaf = [Selected Caffeine (Constant)]
+			VAR Lower = SelCaf - 25 
+			VAR Upper = SelCaf + 25 
+			VAR RowCaf = [RowCaf] 
+			RETURN
+			   if( RowCaf >= Lower && RowCaf <= Upper ,1,0 )
+			```
+		formatString: 0
+		displayFolder: Caffeine Range
+		lineageTag: d605fc78-35bd-4bec-8999-a83348988485
+
+	measure RowSugar =
+			
+			CALCULATE (
+			    SELECTEDVALUE ( 'Coffee Detail'[Sugars (g)] ),
+			    REMOVEFILTERS ( 'Cup Size'[Size_] )
+			)
+		displayFolder: Sugar Range
+		lineageTag: bb9aa587-da1d-40a1-bf3f-ade266f540c4
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Selected Sugar (Constant)' =
+			
+			VAR SelProduct = SELECTEDVALUE ( ProductSize_Slicer[Product] )
+			VAR SelSize    = SELECTEDVALUE ( Size_Slicer[Size])
+			RETURN
+			    CALCULATE (
+			        MAX ( 'Coffee Detail'[Sugars (g)] ),
+			        FILTER (
+			            ALLSelected ( 'Coffee Detail' ),
+			            'Coffee Detail'[Product] = SelProduct &&
+			            RELATED('Cup Size'[Size_]) = SelSize
+			        )
+			    )
+		displayFolder: Sugar Range
+		lineageTag: 11422dee-24e0-44e3-9455-2870a420337a
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Kcal Display_' =
+			
+			VAR VendorSel   = ISFILTERED('Coffee Detail'[Vendor])
+			VAR ProductSel  = ISFILTERED('Coffee Detail'[Product])
+			VAR CategorySel  = ISFILTERED('Coffee Detail'[Category])
+			VAR SizeSel     = ISFILTERED('Cup Size'[Size_])
+			
+			-- Default Size List
+			VAR DefaultSizes =
+			    {"Standard","Small","Mini","Regular","Single","Short"}
+			
+			VAR BaseValue =
+			    IF(
+			        NOT SizeSel,
+			        -- Agar Size slicer select nahi hai → default sizes apply
+			        CALCULATE(
+			            MIN('Coffee Detail'[Energy (kcal)]),
+			            KEEPFILTERS( FILTER( ALL('Coffee Detail'[Size]), 'Coffee Detail'[Size] IN DefaultSizes ) )
+			        ),
+			        -- Agar Size slicer selected hai → respect user selection
+			        CALCULATE(
+			            MIN('Coffee Detail'[Energy (kcal)])
+			        )
+			    )
+			RETURN
+			    IF (
+			        NOT VendorSel,
+			        "  ",
+			        IF (
+			            VendorSel && NOT CategorySel,
+			             "  ",
+			            IF (
+			                CategorySel && NOT ProductSel,
+			                "  ",
+			                IF (
+			                     ProductSel && NOT SizeSel,
+			                     " ",
+			                    BaseValue
+			                )
+			            )
+			        )
+			    )
+		lineageTag: 60ede65b-f786-46ea-bc39-96ead97dd769
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Show Sugar Range Flag b/W' = ```
+			
+			VAR SelSugar = [Selected Sugar (Constant)]
+			VAR Lower = SelSugar - 5 
+			VAR Upper = SelSugar + 5 
+			VAR RowSugar = [RowSugar] 
+			RETURN
+			   if( RowSugar >= Lower && RowSugar <= Upper ,1,0 )
+			```
+		formatString: 0
+		displayFolder: Sugar Range
+		lineageTag: 14e41371-4fa7-4272-a744-e0161c468a08
+
+	measure 'Show Range Flag (Caf + Sugar)' =
+			
+			VAR SelCaf  = [Selected Caffeine (Constant)]
+			VAR SelSug  = [Selected Sugar (Constant)]
+			
+			-- tolerance (adjust as you like)
+			VAR LowerCaf = SelCaf - 25
+			VAR UpperCaf = SelCaf + 25
+			VAR LowerSug = SelSug - 5
+			VAR UpperSug = SelSug + 5
+			
+			VAR RowCaf = MAX ( 'Coffee Detail'[Caffeine (mg)] )
+			VAR RowSug = MAX ( 'Coffee Detail'[Sugars (g)] )
+			
+			RETURN
+			    IF (
+			        RowCaf >= LowerCaf && RowCaf <= UpperCaf &&
+			        RowSug >= LowerSug && RowSug <= UpperSug,
+			        1,
+			        0
+			    )
+		formatString: 0
+		displayFolder: Sugar Range
+		lineageTag: 45ad9efb-eb8c-4fbd-9a18-a91f5b7c525e
+
+	column Column1
+		dataType: string
+		isHidden
+		lineageTag: 4c21ae90-a478-4d02-ac33-b692cc5f5f12
+		summarizeBy: none
+		sourceColumn: Column1
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Measure = m
+		mode: import
+		source =
+				let
+				    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i44FAA==", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [Column1 = _t]),
+				    #"Changed Type" = Table.TransformColumnTypes(Source,{{"Column1", type text}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+

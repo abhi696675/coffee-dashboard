@@ -1,0 +1,26 @@
+table 'Sugar Selector'
+	lineageTag: 962719bf-3c0b-4e13-bc7a-a3aa34be2db0
+
+	column 'Caffeine (mg)'
+		lineageTag: e1958ee5-08af-48d0-bce2-1961fb73c82f
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Caffeine (mg)]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition 'Sugar Selector' = calculated
+		mode: import
+		source =
+				
+				DISTINCT (
+				    SELECTCOLUMNS (
+				        'Coffee Detail',
+				        "Caffeine (mg)", 'Coffee Detail'[Sugars (g)]
+				    )
+				)
+
+	annotation PBI_Id = 20ade80a632a488e8c0178a35052cc71
+

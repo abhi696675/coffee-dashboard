@@ -1,0 +1,34 @@
+table Logo
+	lineageTag: 803d2c1a-b774-405d-a671-137182863dcc
+
+	column Vendors
+		dataType: string
+		lineageTag: 99cb23b2-63c1-4253-bc0e-047b2e0fcd48
+		summarizeBy: none
+		sourceColumn: Vendors
+
+		annotation SummarizationSetBy = Automatic
+
+	column Pic
+		dataType: string
+		lineageTag: e353f7b3-0364-4edc-be05-83a235194cde
+		dataCategory: ImageUrl
+		summarizeBy: none
+		sourceColumn: Pic
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Logo = m
+		mode: import
+		source =
+				let
+				    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("ldAxC8IwEAXgv1ICbtJnq4K4SQcXFcGxSEiTMxZtryRR/76NheKo4xved8crS1GwD0pMxTWEzq+BR3dnZdJXfasbMrVK2VnE1MUEQ1himeNTkwVfLkSpf1pxnpZi68ha/ztGLSpUGkMvn2WLkTo6ColK9qq15H4XNTcNtx4a2iAam0GQd7Y84oXq304O5Ph/OUeeIQKTYj7ZrGRU5O5bPwXlqoe+/TGE1wwDM8fY7ad1HTsVam4/vOznyYYb5zc=", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [ColumVendorn = _t, Pic = _t]),
+				    #"Changed Type" = Table.TransformColumnTypes(Source,{{"ColumVendorn", type text}, {"Pic", type text}}),
+				    #"Renamed Columns" = Table.RenameColumns(#"Changed Type",{{"ColumVendorn", "Vendors"}})
+				in
+				    #"Renamed Columns"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+
