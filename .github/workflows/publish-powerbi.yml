@@ -7,17 +7,23 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-
+    runs-on: windows-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Publish PBIP to Power BI
-        uses: microsoft/powerbi-action-pbip@v1
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
         with:
-          workspace-id: ${{ secrets.WORKSPACE_ID }}
-          tenant-id: ${{ secrets.TENANT_ID }}
-          client-id: ${{ secrets.CLIENT_ID }}
-          client-secret: ${{ secrets.CLIENT_SECRET }}
-          pbip-path: Coffee.pbip
+          dotnet-version: '6.0.x'
+
+      - name: Install PbiTools
+        run: dotnet tool install --global PbiTools
+
+      - name: Publish to Power BI
+        run: |
+          pbitools push Coffee.pbip `
+            --workspace ${{ secrets.WORKSPACE_ID }} `
+            --tenant ${{ secrets.TENANT_ID }} `
+            --client-id ${{ secrets.CLIENT_ID }} `
+            --client-secret ${{ secrets.CLIENT_SECRET }}
