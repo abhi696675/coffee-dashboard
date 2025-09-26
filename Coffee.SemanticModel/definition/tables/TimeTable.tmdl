@@ -1,0 +1,60 @@
+table TimeTable
+	lineageTag: 6190a67d-2690-46d6-afd0-6c9b94c25d68
+
+	column Value
+		formatString: 0
+		lineageTag: 22f53703-9c47-4f5e-a708-6d3ee5a728ef
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Value]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Hour24
+		formatString: 0
+		lineageTag: 5543718e-0f21-4b4e-be19-e6e98d7a4f1e
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Hour24]
+
+		annotation SummarizationSetBy = Automatic
+
+	column SortOrder
+		formatString: 0
+		lineageTag: b848f7fb-ee7e-4684-ab00-23b78669de5f
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [SortOrder]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Time_24_hhmmss
+		lineageTag: dd9abf80-efc0-424f-9057-38dd34fa879b
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Time_24_hhmmss]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Time_12_hhmmss
+		lineageTag: 2c815973-3ad1-4102-acba-e3a405814b21
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Time_12_hhmmss]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition TimeTable = calculated
+		mode: import
+		source =
+				
+				ADDCOLUMNS (
+				    GENERATESERIES ( 0, 23, 1 ),                -- 24 rows, each hour
+				    "Hour24", [Value],
+				    "Time_24_hhmmss", FORMAT ( TIME ( [Value], 0, 0 ), "HH : mm:ss" ),   -- 00..23 → "12 : 00:00"
+				    "Time_12_hhmmss", FORMAT ( TIME ( [Value], 0, 0 ), "hh : mm:ss" ),   -- 12-hour → "12 : 00:00"
+				    "SortOrder", [Value]                        -- use this for proper sorting
+				)
+
+	annotation PBI_Id = 6628f90fb1524d748549592426be64a4
+

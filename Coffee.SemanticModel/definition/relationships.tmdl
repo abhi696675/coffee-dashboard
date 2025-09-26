@@ -1,0 +1,10 @@
+relationship b1e74a78-1d38-fecf-634e-721e03fd6d58
+	crossFilteringBehavior: bothDirections
+	fromColumn: 'Coffee Detail'.Vendor
+	toColumn: Logo.Vendors
+
+relationship 43d239f2-3db3-71c6-cb0d-6a06a0a354a4
+	crossFilteringBehavior: bothDirections
+	fromColumn: 'Coffee Detail'.Vendor–Size
+	toColumn: 'Cup Size'.Vendor–Size
+

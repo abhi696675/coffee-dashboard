@@ -1,0 +1,72 @@
+table UK_Caffeine_Limits
+	lineageTag: 595598f2-3718-400b-84ab-cbd863eb9b3d
+
+	column 'Age Group'
+		dataType: string
+		lineageTag: 46836f9f-6769-4e19-bada-4c385b1e9b2f
+		summarizeBy: none
+		sourceColumn: Age Group
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Safe Limit (mg/day)'
+		dataType: int64
+		formatString: 0
+		lineageTag: f20602fa-2a78-47d0-89d4-03a980478c58
+		summarizeBy: sum
+		sourceColumn: Safe Limit (mg/day)
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Notes & Examples'
+		dataType: string
+		lineageTag: 27bf3939-f849-4fff-8cac-ba6695753448
+		summarizeBy: none
+		sourceColumn: Notes & Examples
+
+		annotation SummarizationSetBy = Automatic
+
+	column AgeSort =
+			
+			VAR g =
+			    TRIM ( LOWER ( SUBSTITUTE ( 'UK_Caffeine_Limits'[Age Group], UNICHAR(8211), "-" ) ) )
+			RETURN
+			SWITCH (
+			    TRUE(),
+			    g = "0-11 yrs", 1,
+			    g = "12-17 yrs", 2,
+			    g = "18-64 yrs", 3,
+			    CONTAINSSTRING(g, "pregnant"), 4,      -- Pregnant / Breastfeeding
+			    CONTAINSSTRING(g, "65+"), 5,           -- 65+ yrs
+			   4
+			)
+		formatString: 0
+		lineageTag: 187cb3da-58f9-4faa-913d-4401f25ab693
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Age Group-' = [Age Group]
+		lineageTag: 1b31f49f-87ee-4231-9c7f-0f49ca8f024d
+		summarizeBy: none
+		sortByColumn: AgeSort
+
+		changedProperty = SortByColumn
+
+		annotation SummarizationSetBy = Automatic
+
+	partition UK_Caffeine_Limits = m
+		mode: import
+		source =
+				let
+				    Source = Excel.Workbook(File.Contents("C:\Users\Jassi\Downloads\Data\All Data for 5 vendors1.xlsx"), null, true),
+				    UK_Caffeine_Limits_Sheet = Source{[Item="UK_Caffeine_Limits",Kind="Sheet"]}[Data],
+				    #"Promoted Headers" = Table.PromoteHeaders(UK_Caffeine_Limits_Sheet, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"Age Group", type text}, {"Safe Limit (mg/day)", Int64.Type}, {"Notes & Examples", type text}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

@@ -1,0 +1,26 @@
+table 'Weight (in lbs)'
+	lineageTag: 06c46c08-a411-4fff-bd98-09afd0571bb5
+
+	measure 'Weight (lbs) Value' = SELECTEDVALUE('Weight (in lbs)'[Weight (lbs)])
+		formatString: 0
+		lineageTag: e9d1f032-ac4b-4820-b389-131a3f25af2e
+
+	column 'Weight (lbs)'
+		formatString: 0
+		lineageTag: f4c60bf2-b613-4b6b-9442-7df7d011377e
+		summarizeBy: none
+		sourceColumn: [Value]
+
+		extendedProperty ParameterMetadata =
+				{
+				  "version": 0
+				}
+
+		annotation SummarizationSetBy = User
+
+	partition 'Weight (in lbs)' = calculated
+		mode: import
+		source = GENERATESERIES(60, 990, 1)
+
+	annotation PBI_Id = 914e0a616a3c4adfb39ad59f59f16c36
+

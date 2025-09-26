@@ -1,0 +1,65 @@
+table 'Age (in Years)'
+	lineageTag: 119e4522-a178-49e4-a895-cec7753931c6
+
+	measure 'Age Value' = SELECTEDVALUE('Age (in Years)'[Age (in Years)])
+		formatString: 0
+		lineageTag: 5eabea2b-0cca-4be7-bb78-73b51a138795
+
+	measure 'Total Safe Drinks' =
+			
+			COUNTROWS (
+			    FILTER (
+			        'Coffee Detail',
+			        'Coffee Detail'[Caffeine (mg)] <= 200   -- safe limit
+			    )
+			)
+		formatString: 0
+		lineageTag: d93f258c-7405-4a27-83aa-451c29daa961
+
+	measure 'Borderline Drinks' =
+			
+			COUNTROWS (
+			    FILTER (
+			        'Coffee Detail',
+			        'Coffee Detail'[Caffeine (mg)] > 200 &&
+			        'Coffee Detail'[Caffeine (mg)] <= 300
+			    )
+			)
+		formatString: 0
+		lineageTag: 73bd82a2-a03c-4350-8a65-2d9fedd8b08f
+
+	measure 'Unsafe Drinks' =
+			
+			COUNTROWS (
+			    FILTER (
+			        'Coffee Detail',
+			        'Coffee Detail'[Caffeine (mg)] > 300
+			    ))
+		formatString: 0
+		lineageTag: fd8aecfe-5fac-422f-9254-26d79b0b923c
+
+	measure 'Target value' = ```
+			1 
+			```
+		formatString: 0
+		lineageTag: 227064f3-28b8-49cf-88e2-69465e1ff38f
+
+	column 'Age (in Years)'
+		formatString: 0
+		lineageTag: bf5df2e6-e477-463b-997b-9d6ea6762991
+		summarizeBy: none
+		sourceColumn: [Value]
+
+		extendedProperty ParameterMetadata =
+				{
+				  "version": 0
+				}
+
+		annotation SummarizationSetBy = User
+
+	partition 'Age (in Years)' = calculated
+		mode: import
+		source = GENERATESERIES(12, 95, 1)
+
+	annotation PBI_Id = 50f48e7a6bd34807907f94a7e13c3a3e
+

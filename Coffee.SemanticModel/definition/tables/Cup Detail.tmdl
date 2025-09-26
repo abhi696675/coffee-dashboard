@@ -1,0 +1,80 @@
+table 'Cup Detail'
+	lineageTag: cef20a75-0d5e-431a-98f4-143ac5898a39
+
+	column Starbucks
+		dataType: string
+		lineageTag: 2fc09f48-141e-4668-8d01-afbc9f939ec1
+		summarizeBy: none
+		sourceColumn: Starbucks
+		sortByColumn: Sort
+
+		changedProperty = SortByColumn
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Caffe Nero'
+		dataType: string
+		lineageTag: 398c6fab-cd0c-430a-b4d7-7b1d439c1b0f
+		summarizeBy: none
+		sourceColumn: Caffe Nero
+
+		annotation SummarizationSetBy = Automatic
+
+	column Costa
+		dataType: string
+		lineageTag: fbb763ab-d28e-4194-89df-97de92e73b6f
+		summarizeBy: none
+		sourceColumn: Costa
+
+		annotation SummarizationSetBy = Automatic
+
+	column Greggs
+		dataType: string
+		lineageTag: 1c75a2a7-2ba0-4fe6-9425-1b460172a74f
+		summarizeBy: none
+		sourceColumn: Greggs
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Pret a Manger'
+		dataType: string
+		lineageTag: 0c1d2bef-31ce-4e90-baab-413efcaebd9f
+		summarizeBy: none
+		sourceColumn: Pret a Manger
+
+		annotation SummarizationSetBy = Automatic
+
+	column Sort
+		dataType: string
+		lineageTag: 45b73faf-ac77-4947-924c-76ba23e06b26
+		summarizeBy: none
+		sourceColumn: Sort
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Size Tag Label'
+		dataType: string
+		lineageTag: b9141cc7-3076-4b9a-82fd-85d42ee2cd3e
+		summarizeBy: none
+		sourceColumn: Size Tag Label
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Cup Detail' = m
+		mode: import
+		source =
+				let
+				    Source = Excel.Workbook(File.Contents("C:\Users\Jassi\Downloads\Data\All Data for 5 vendors1.xlsx"), null, true),
+				    #"Cup Detail_Sheet" = Source{[Item="Cup Detail",Kind="Sheet"]}[Data],
+				    #"Changed Type" = Table.TransformColumnTypes(#"Cup Detail_Sheet",{{"Column1", type text}, {"Column2", type text}, {"Column3", type text}, {"Column4", type text}, {"Column5", type text}}),
+				    #"Promoted Headers" = Table.PromoteHeaders(#"Changed Type", [PromoteAllScalars=true]),
+				    #"Changed Type1" = Table.TransformColumnTypes(#"Promoted Headers",{{"Starbucks", type text}, {"Caffe Nero", type text}, {"Costa", type text}, {"Greggs", type text}, {"Pret a Manger", type text}}),
+				    #"Added Conditional Column" = Table.AddColumn(#"Changed Type1", "Custom", each if [Starbucks] = "" then "" else null),
+				    #"Removed Columns" = Table.RemoveColumns(#"Added Conditional Column",{"Custom"})
+				in
+				    #"Removed Columns"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+
