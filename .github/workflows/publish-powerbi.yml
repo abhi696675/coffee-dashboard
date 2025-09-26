@@ -1,0 +1,26 @@
+name: Publish Power BI PBIP
+
+on:
+  push:
+    branches:
+      - main   # Run workflow when changes are pushed to main
+
+jobs:
+  deploy:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install PbiTools
+        run: dotnet tool install --global PbiTools
+
+      - name: Publish to Power BI
+        run: |
+          pbitools push Coffee.pbip `
+            --workspace ${{ secrets.WORKSPACE_ID }} `
+            --tenant ${{ secrets.TENANT_ID }} `
+            --client-id ${{ secrets.CLIENT_ID }} `
+            --client-secret ${{ secrets.CLIENT_SECRET }}
+
