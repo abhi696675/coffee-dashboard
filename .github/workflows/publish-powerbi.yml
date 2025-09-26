@@ -13,18 +13,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Publish PBIP to Power BI
+        uses: microsoft/powerbi-action-pbip@v1
         with:
-          node-version: '18'
-
-      - name: Install pbip CLI
-        run: npm install -g powerbi-pbip
-
-      - name: Publish to Power BI
-        run: |
-          pbip push Coffee.pbip \
-            --workspace ${{ secrets.WORKSPACE_ID }} \
-            --tenant ${{ secrets.TENANT_ID }} \
-            --client-id ${{ secrets.CLIENT_ID }} \
-            --client-secret ${{ secrets.CLIENT_SECRET }}
+          workspace-id: ${{ secrets.WORKSPACE_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          client-id: ${{ secrets.CLIENT_ID }}
+          client-secret: ${{ secrets.CLIENT_SECRET }}
+          pbip-path: Coffee.pbip
