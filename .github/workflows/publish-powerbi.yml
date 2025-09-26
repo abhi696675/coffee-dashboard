@@ -3,7 +3,7 @@ name: Publish Power BI PBIP
 on:
   push:
     branches:
-      - main   # Run workflow when changes are pushed to main
+      - main
 
 jobs:
   deploy:
@@ -19,7 +19,7 @@ jobs:
           dotnet-version: '7.0.x'
 
       - name: Install PBIP Tool
-        run: dotnet tool install --global pbip
+        run: dotnet tool install --global pbip --add-source https://api.nuget.org/v3/index.json
 
       - name: Add dotnet tools to PATH
         run: echo "${HOME}/.dotnet/tools" >> $GITHUB_PATH
